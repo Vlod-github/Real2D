@@ -1,0 +1,174 @@
+library LibReal2D requires HT
+
+struct Real2D
+	integer length
+	integer width
+	real min
+	real max
+	hashtable ht
+	
+	static method create takes integer length, integer width returns thistype
+		thistype n = thistype.allocate()
+		n.length = length
+		n.width = width
+		n.ht = HT_create()
+		return n
+	endmethod
+	method destroy takes nothing returns nothing
+		integer i = .length
+		loop
+		exitwhen i <= 0
+			FlushChildHashtable(.ht,i)
+		i--
+		endloop
+		HT_destroy(.ht)
+		.ht = null
+		.deallocate()
+	endmethod
+	
+	method getr takes integer x, integer y returns real
+		return LoadReal(.ht,x,y)
+	endmethod
+	method setr takes integer x, integer y, real v returns nothing
+		call SaveReal(.ht,x,y,v)
+	endmethod
+
+	method copy takes nothing returns thistype
+		integer opt = 0, x = .length, y
+		thistype map = create(.length, .width)
+		hashtable h = .ht, newh = map.ht
+		map.max = .max
+		map.min = .min
+		TriggerSleepAction(0)
+		loop
+		exitwhen x <= 0
+			y = .width
+			loop
+			exitwhen y <= 0
+				SaveReal(newh,x,y,LoadReal(h,x,y))
+				opt++
+				if opt >= 6000
+					TriggerSleepAction(0)
+					opt = 0
+				endif
+			y--
+			endloop
+		x--
+		endloop
+		h = null
+		newh = null
+		return map
+	endmethod
+
+	method maxmin takes nothing returns nothing
+		real r, min = 99999, max = -min
+		hashtable h = .ht
+		integer opt = 0, x = .length, y
+		TriggerSleepAction(0)
+		loop
+		exitwhen x <= 0
+			y = .width
+			loop
+			exitwhen y <= 0
+				r = LoadReal(h,x,y)
+				if r > max
+					max = r
+				endif
+				if r < min
+					min = r
+				endif
+				opt++
+				if opt >= 6000
+					TriggerSleepAction(0)
+					opt = 0
+				endif
+			y--
+			endloop
+		x--
+		endloop
+		.min = min
+		.max = max
+		h = null
+	endmethod
+
+	method norm takes nothing returns thistype
+		hashtable h = .ht
+		integer opt = 0, x = .length, y
+		maxmin()
+		real k = (.max-.min)
+		if k == 0
+			return this
+		endif
+		TriggerSleepAction(0)
+		x = .length
+		loop
+		exitwhen x <= 0
+			y = .width
+			loop
+			exitwhen y <= 0
+				SaveReal(h,x,y,(LoadReal(h,x,y)-min)/k)
+				opt++
+				if opt >= 5500
+					TriggerSleepAction(0)
+					opt = 0
+				endif
+			y--
+			endloop
+		x--
+		endloop
+		h = null
+		return this
+	endmethod
+
+	method multiply takes real k returns thistype
+		hashtable h = .ht
+		integer opt = 0, x = .length, y
+		TriggerSleepAction(0)
+		loop
+		exitwhen x <= 0
+			y = .width
+			loop
+			exitwhen y <= 0
+				SaveReal(h, x, y, LoadReal(h,x,y)*k)
+				opt++
+				if opt >= 6500
+					TriggerSleepAction(0)
+					opt = 0
+				endif
+			y--
+			endloop
+		x--
+		endloop
+		h = null
+		return this
+	endmethod
+
+	method pow takes real pow returns thistype
+		hashtable h = .ht
+		integer opt = 0, x = .length, y
+		loop
+		exitwhen x <= 0
+			y = .width
+			loop
+			exitwhen y <= 0
+				SaveReal(h, x, y, Pow(LoadReal(h,x,y),pow))
+				opt++
+				if opt >= 6000 //test
+					TriggerSleepAction(0)
+					opt = 0
+				endif
+			y--
+			endloop
+		x--
+		endloop
+		h = null
+		return this
+	endmethod
+
+	method square takes nothing returns thistype
+		return .pow(2)
+	endmethod
+
+endstruct
+
+endlibrary
